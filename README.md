@@ -211,13 +211,13 @@ The application uses JWT-based authentication:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    FRONTEND (React 19)                   │
+│                    FRONTEND (React 19)                  │
 │  TypeScript · Tailwind CSS · Framer Motion · Recharts   │
 │  React Router v7 · Axios · React Hot Toast · date-fns   │
 ├─────────────────────────────────────────────────────────┤
-│                    REST API (Axios)                      │
+│                    REST API (Axios)                     │
 ├─────────────────────────────────────────────────────────┤
-│                  BACKEND (Express 5)                     │
+│                  BACKEND (Express 5)                    │
 │  JWT Auth · Mongoose ODM · CORS · Express Validator     │
 ├─────────────────────────────────────────────────────────┤
 │              EXTERNAL SERVICES                          │
@@ -531,32 +531,6 @@ crm-app/
 
 ---
 
-## 🗺️ Future Roadmap
-
-- [ ] **Email Integration** — Send emails directly from the Communications page
-- [ ] **Role-Based Access Control** — Granular permissions per role
-- [ ] **Bulk Operations** — Multi-select customers for batch status updates or deletions
-- [ ] **Real-Time Notifications** — WebSocket-based live notification system
-- [ ] **Customer Import** — CSV/Excel upload for bulk customer creation
-- [ ] **Mobile App** — React Native companion app
-- [ ] **Reporting** — Scheduled PDF/email reports for management
-- [ ] **Activity Audit Log** — Track who changed what and when
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how:
-
-1. **Fork** the repository
-2. **Create** your feature branch: `git checkout -b feature/your-feature-name`
-3. **Commit** your changes: `git commit -m 'Add your feature'`
-4. **Push** to the branch: `git push origin feature/your-feature-name`
-5. **Open** a Pull Request
-
-Please ensure your code follows the existing code style and includes appropriate error handling.
-
----
 
 ## 📄 License
 
