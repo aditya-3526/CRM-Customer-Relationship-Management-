@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-background: 248 250 252;
+    /* #f8fafc */
+    --color-surface: 255 255 255;
+    /* #ffffff */
+    --color-border: 226 232 240;
+    /* #e2e8f0 */
+    --color-text-main: 15 23 42;
+    /* brand.dark */
+    --color-text-muted: 100 116 139;
+    /* gray.500 equivalent */
+  }
+
+  .dark {
+    --color-background: 15 23 42;
+    /* text-slate-900 */
+    --color-surface: 30 41 59;
+    /* text-slate-800 */
+    --color-border: 51 65 85;
+    /* text-slate-700 */
+    --color-text-main: 248 250 252;
+    /* text-slate-50 */
+    --color-text-muted: 148 163 184;
+    /* text-slate-400 */
+  }
+
+  body {
+    @apply bg-background text-brand-dark antialiased font-sans m-0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading tracking-tight;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-surface/70 backdrop-blur-md border border-border/40 shadow-glass rounded-2xl;
+  }
+}
