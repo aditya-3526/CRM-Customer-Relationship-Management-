@@ -18,6 +18,25 @@
   <img src="https://img.shields.io/badge/TypeScript-Typed-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
 </p>
 
+<p align="center">
+  <a href="http://15.252.164.53/">
+    <img src="https://img.shields.io/badge/▶_Live_Demo-15.252.164.53-22C55E?style=for-the-badge" />
+  </a>
+  <img src="https://img.shields.io/badge/Deployed_on-AWS_EC2-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white" />
+</p>
+
+<h3 align="center">🔗 <a href="http://15.252.164.53/">Try it live →</a></h3>
+
+<p align="center">
+  <strong>Demo credentials</strong> — no signup required<br/>
+  <code>admin@crm.com</code> / <code>password123</code> &nbsp;·&nbsp; <code>sales@crm.com</code> / <code>password123</code><br/>
+  <sub>Both are also one click away on the login page. The demo holds sample data only and re-seeds nightly, so explore freely — you can't break anything permanent.</sub>
+</p>
+
+<p align="center">
+  <sub>⚠️ Served over HTTP, not HTTPS — your browser will show "Not Secure". Don't reuse a real password here.</sub>
+</p>
+
 ---
 
 ## 📖 Table of Contents
@@ -606,7 +625,8 @@ Stated plainly, because a README that only lists strengths isn't much use to any
 **Not implemented:**
 
 - **No tests.** The only test file is CRA's default `App.test.tsx`, which asserts against a "learn react" link this app doesn't render — it would fail if run. This is the project's biggest gap.
-- **No HTTPS on the deployed instance.** HTTP only; credentials cross the network in plaintext. Certbot is documented in [DEPLOY.md](DEPLOY.md) but needs a domain first.
+- **No HTTPS.** The live demo is served over HTTP, so credentials cross the network in plaintext and browsers flag the login form as insecure. Certbot is documented in [DEPLOY.md](DEPLOY.md); it needs a domain name, which the raw IP can't provide.
+- **The demo runs on a bare IP**, so the link breaks if the instance is ever stopped and restarted with a new address.
 - **No role-based access control.** Roles exist on the User model; no middleware enforces them.
 - **No CI/CD.** Deployment is a shell script run manually.
 - **No rate limiting** on auth endpoints, no refresh tokens, no token rotation.
@@ -616,7 +636,7 @@ Stated plainly, because a README that only lists strengths isn't much use to any
 
 - **Customer filtering is client-side**, which is fast and simple under ~1,000 records but needs server-side pagination beyond that.
 - **The Notes tab persists to `localStorage`, not the database** — notes are per-browser and won't survive a device change.
-- **Demo credentials are displayed on the login page.** Convenient for evaluation, unsuitable for a public deployment holding real data. Remove the demo block and seed with generated passwords before exposing this publicly.
+- **Demo credentials are displayed on the login page**, deliberately — this is a portfolio demo holding fabricated data, and a signup wall would only deter people from trying it. A nightly cron re-seeds the database so a visitor can't leave it empty. If this ever held real data, that block would need removing and the accounts reseeding with generated passwords.
 - **`@tanstack/react-query` is installed but largely unused** — most data fetching is direct axios calls.
 
 ---
