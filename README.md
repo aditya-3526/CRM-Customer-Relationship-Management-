@@ -5,7 +5,7 @@
 <h1 align="center">CRM Lite — AI-Powered Customer Relationship Management</h1>
 
 <p align="center">
-  A production-grade, full-stack SaaS CRM platform built with the MERN stack and Google Gemini AI.<br/>
+  A full-stack SaaS CRM built with the MERN stack and Google Gemini AI, deployed on self-managed AWS infrastructure.<br/>
   Manage customers, track deals, analyze revenue, and leverage artificial intelligence — all from one dashboard.
 </p>
 
@@ -31,7 +31,9 @@
 - [How to Use the Application](#-how-to-use-the-application)
 - [API Reference](#-api-reference)
 - [Project Structure](#-project-structure)
+- [Deployment](#-deployment)
 - [Design Decisions](#-design-decisions)
+- [Limitations](#-limitations)
 - [Future Roadmap](#-future-roadmap)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -56,9 +58,10 @@ The application is built as a monorepo with a decoupled REST API backend and a R
 | Metric | Detail |
 |--------|--------|
 | **Pages** | 8 fully functional pages (Dashboard, Customers, Customer Detail, Pipeline, Communications, Analytics, Reminders, Login) |
-| **API Endpoints** | 18 RESTful endpoints across 6 route modules |
+| **API Endpoints** | 22 route handlers across 6 route modules |
 | **AI Features** | 2 Gemini-powered features (Customer Insights, Natural Language Search) |
-| **Authentication** | JWT-based auth with role-based access (Admin / Sales Rep) |
+| **Authentication** | JWT auth with bcrypt-hashed passwords. Roles are stored but **not enforced** — see [Limitations](#-limitations) |
+| **Deployment** | AWS EC2 + nginx + pm2, MongoDB Atlas — see [Deployment](#-deployment) |
 | **Data Models** | 4 MongoDB collections (Users, Customers, Communications, Reminders) |
 | **Theme Support** | Full dark/light mode with CSS custom properties |
 | **Responsiveness** | Mobile-first design with collapsible sidebar navigation |
@@ -203,7 +206,9 @@ The application uses JWT-based authentication:
 - **Login** — Email/password authentication that returns a JWT token
 - **Protected Routes** — All API endpoints (except auth) require a valid JWT in the `Authorization` header
 - **Auto-Login** — On page load, the app checks localStorage for an existing token and validates it against the `/api/auth/me` endpoint
-- **Role Support** — Admin and User roles are stored in the database (extensible for RBAC)
+- **Role Support** — Admin and User roles are stored on the User model, but **no authorization middleware enforces them**. Every authenticated user can perform every action. The schema is a foundation for RBAC, not an implementation of it.
+
+**Security note:** JWT signing previously fell back to a hardcoded string when `JWT_SECRET` was unset. That fallback has been removed — the server now refuses to start without a secret of at least 32 characters. Generate one with `openssl rand -base64 48`.
 
 ---
 
@@ -264,20 +269,26 @@ cd server
 npm install
 ```
 
-Create a file named `.env` inside the `server/` directory with the following contents:
+Copy the example env file and fill it in:
+
+```bash
+cp .env.example .env
+```
 
 ```env
-MONGO_URI=mongodb://localhost:27017/crm-lite
-JWT_SECRET=your_secret_key_here
-PORT=3001
+MONGO_URI=mongodb://localhost:27017/crm
+JWT_SECRET=          # openssl rand -base64 48
+PORT=5000
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-> **Note:** Replace `your_secret_key_here` with any random string (used for JWT signing). Replace `your_gemini_api_key_here` with your actual Gemini API key. If using MongoDB Atlas, replace the `MONGO_URI` with your Atlas connection string.
+> **`JWT_SECRET` is mandatory and must be at least 32 characters.** The server validates this at boot and exits with a clear message rather than starting in an insecure state. Generate one with `openssl rand -base64 48` — don't invent one by hand.
+>
+> If using MongoDB Atlas, replace `MONGO_URI` with your connection string, remembering to include the database name before the `?` and to percent-encode any special characters in the password.
 
 ### Step 3: Seed the Database
 
-This populates the database with 12 sample customers, 100+ communications, and 2 user accounts so you can explore the app immediately:
+This populates the database with 12 sample customers, 27 communications, and 2 user accounts so you can explore the app immediately:
 
 ```bash
 node seedData.js
@@ -291,11 +302,13 @@ You should see output confirming that users, customers, and communications were 
 npm run dev
 ```
 
-The server will start on `http://localhost:3001`. You should see:
+The server will start on `http://localhost:5000`. You should see:
 ```
-Server running on port 3001
+Server running on 0.0.0.0:5000 [development]
 MongoDB connected successfully
 ```
+
+> In production (`NODE_ENV=production`) the server binds to `127.0.0.1` instead, so it is reachable only through the nginx reverse proxy.
 
 ### Step 5: Configure and Start the Frontend
 
@@ -476,9 +489,9 @@ crm-app/
 │   │   ├── aiRoutes.js               # AI insights + natural search
 │   │   └── reminderRoutes.js         # Reminder CRUD + upcoming
 │   ├── middleware/
-│   │   ├── authMiddleware.js         # JWT token verification (protect)
+│   │   ├── auth.js                   # JWT token verification (protect)
 │   │   └── errorHandler.js           # Global error handling
-│   ├── seedData.js                   # Database seeder (12 customers, 100+ comms)
+│   ├── seedData.js                   # Database seeder (12 customers, 27 comms)
 │   ├── server.js                     # Express app entry point
 │   └── .env                          # Environment variables (not committed)
 │
@@ -516,6 +529,60 @@ crm-app/
 
 ---
 
+## ☁️ Deployment
+
+The application runs on a single AWS EC2 instance with nginx as reverse proxy and static host, Node under pm2, and the database off-instance on MongoDB Atlas.
+
+```
+Browser ──HTTP──> EC2 t3.micro (ap-south-1)
+                    │
+                    ├── nginx :80 ──── React build (/var/www/crm)
+                    │                  gzip · immutable /static/ · SPA fallback
+                    │
+                    └── nginx /api/ ──proxy──> Node :5000 (127.0.0.1 only)
+                                                    │
+                                                    └──TLS──> MongoDB Atlas M0
+```
+
+### Why this shape
+
+| Decision | Reasoning |
+|---|---|
+| **Database off-instance** | A `t3.micro` has 1 GB RAM. Running `mongod` alongside Node leaves neither enough headroom. Atlas M0 is free and removes the problem. |
+| **Node bound to `127.0.0.1`** | The API is unreachable except through nginx, even if a security-group rule is too permissive. Port 5000 is never opened. |
+| **Frontend served same-origin** | The bundle calls a relative `/api` path that nginx proxies, so there is no cross-origin request and no CORS surface in the default setup. |
+| **Frontend built locally, not on the server** | `react-scripts build` needs ~1.5 GB and OOM-kills a 1 GB instance even with swap. |
+| **pm2 over a bare systemd unit** | Restart backoff, memory ceiling, log management and reboot persistence without writing any of it. |
+| **Least-privilege DB user** | The application user has `readWrite` on one database only — no `atlasAdmin`, no `readWriteAnyDatabase`. |
+
+### Deploying it yourself
+
+```bash
+# 1. Provision a fresh Ubuntu 24.04 instance (installs Node 20, nginx, pm2, ufw, 2 GB swap)
+scp -i key.pem deploy/setup-server.sh deploy/nginx.conf ubuntu@YOUR_IP:~/
+ssh -i key.pem ubuntu@YOUR_IP 'bash setup-server.sh'
+
+# 2. Create /var/www/crm-api/.env on the server (see server/.env.example)
+
+# 3. Build, ship, install, restart, health-check — one command
+./deploy/push.sh ubuntu@YOUR_IP key.pem
+```
+
+Full instructions, free-tier cost mechanics, and a troubleshooting guide written from the failures actually encountered are in **[DEPLOY.md](DEPLOY.md)**.
+
+### Bugs this deployment surfaced
+
+Deploying exposed six defects that were invisible in local development, all worth reading if you're deploying a Node app for the first time:
+
+1. **JWT signing fell back to a hardcoded secret** (`process.env.JWT_SECRET || 'secretkey'`) — an authentication bypass if the variable were ever unset. Removed; startup validation added.
+2. **Every error stack trace was silently swallowed** — the error handler logged `err.stack.red`, relying on a `colors` package that was never a dependency.
+3. **The seed script hardcoded `mongodb://localhost:27017`** and never loaded `.env`, so it could only ever work against a local database.
+4. **Frontend and backend disagreed on the port** (3001 vs 5000).
+5. **The password pre-save hook re-hashed already-hashed passwords** when the password wasn't modified, silently locking users out on any profile save.
+6. **CORS rejected same-origin POSTs** — browsers send an `Origin` header on all non-GET requests, so every browser login failed while `curl` succeeded.
+
+---
+
 ## 💡 Design Decisions
 
 | Decision | Rationale |
@@ -528,9 +595,31 @@ crm-app/
 | **date-fns over Moment.js** | Tree-shakeable, modern date library with smaller bundle size |
 | **Framer Motion for animations** | Declarative API for complex layout animations with minimal code |
 | **Centralized API config** | All endpoint URLs in one file (`config/api.ts`) makes backend URL changes trivial |
+| **Relative `/api` base URL by default** | The bundle isn't pinned to a hostname, so the same build works on any domain behind the nginx proxy |
 
 ---
 
+## ⚠️ Limitations
+
+Stated plainly, because a README that only lists strengths isn't much use to anyone evaluating the code.
+
+**Not implemented:**
+
+- **No tests.** The only test file is CRA's default `App.test.tsx`, which asserts against a "learn react" link this app doesn't render — it would fail if run. This is the project's biggest gap.
+- **No HTTPS on the deployed instance.** HTTP only; credentials cross the network in plaintext. Certbot is documented in [DEPLOY.md](DEPLOY.md) but needs a domain first.
+- **No role-based access control.** Roles exist on the User model; no middleware enforces them.
+- **No CI/CD.** Deployment is a shell script run manually.
+- **No rate limiting** on auth endpoints, no refresh tokens, no token rotation.
+- **No real-time updates**, no websockets, no email/SMS sending, no file attachments, no audit log.
+
+**Known trade-offs:**
+
+- **Customer filtering is client-side**, which is fast and simple under ~1,000 records but needs server-side pagination beyond that.
+- **The Notes tab persists to `localStorage`, not the database** — notes are per-browser and won't survive a device change.
+- **Demo credentials are displayed on the login page.** Convenient for evaluation, unsuitable for a public deployment holding real data. Remove the demo block and seed with generated passwords before exposing this publicly.
+- **`@tanstack/react-query` is installed but largely unused** — most data fetching is direct axios calls.
+
+---
 
 ## 📄 License
 

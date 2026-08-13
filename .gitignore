@@ -4,7 +4,22 @@ node_modules/
 
 # Environment variables
 .env
+.env.local
+.env.*.local
 server/.env
+crm-lite-frontend/.env.local
+
+# Credentials — never commit these
+*.pem
+*.key
+*.p12
+*.ppk
+
+# Private career notes — MUST NOT be published.
+# Contains resume strategy, contact routing, and candid self-assessment of this
+# and other projects. A recruiter finding this would read the "DO NOT CLAIM"
+# sections as a list of weaknesses.
+PROJECT-DOSSIER.md
 
 # Build outputs
 crm-lite-frontend/build/

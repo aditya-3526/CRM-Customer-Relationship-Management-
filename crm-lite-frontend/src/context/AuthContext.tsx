@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         try {
           // Verify token and get user data
-          const res = await axios.get(API_ENDPOINTS.auth?.me || 'http://localhost:5000/api/auth/me');
+          const res = await axios.get(API_ENDPOINTS.auth.me);
           setUser(res.data.data);
         } catch (error) {
           console.error("Token invalid or expired");

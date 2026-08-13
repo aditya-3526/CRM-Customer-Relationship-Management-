@@ -1,4 +1,17 @@
-export const API_BASE_URL = 'http://localhost:3001/api';
+// API base URL.
+//
+// Resolution order:
+//   1. REACT_APP_API_BASE_URL, if set at BUILD time (not runtime — CRA inlines
+//      env vars into the bundle during `npm run build`).
+//   2. '/api' — a same-origin relative path. This is the production default and
+//      assumes nginx proxies /api to the Node server. It sidesteps CORS and
+//      mixed-content entirely, and means the bundle is not pinned to a hostname.
+//
+// For local development, create crm-lite-frontend/.env.local containing:
+//   REACT_APP_API_BASE_URL=http://localhost:5000/api
+// and make sure the server is on the same port (server/.env -> PORT=5000).
+export const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL || '/api';
 
 export const API_ENDPOINTS = {
   auth: {
@@ -21,4 +34,4 @@ export const API_ENDPOINTS = {
   },
   reminders: `${API_BASE_URL}/reminders`,
   remindersUpcoming: `${API_BASE_URL}/reminders/upcoming`,
-}; 
+};

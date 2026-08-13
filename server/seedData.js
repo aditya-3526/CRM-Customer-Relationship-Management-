@@ -1,7 +1,13 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
 const Customer = require('./models/Customer');
 const Communication = require('./models/Communication');
 const User = require('./models/User');
+
+if (!process.env.MONGO_URI) {
+  console.error('FATAL: MONGO_URI is not set. Run this from the directory containing .env');
+  process.exit(1);
+}
 
 const sampleUsers = [
   {
@@ -149,8 +155,11 @@ const sampleCustomers = [
 const seedData = async () => {
   try {
     // Connect to MongoDB
-    await mongoose.connect('mongodb://localhost:27017/crm-lite');
-    console.log('Connected to MongoDB');
+    // Use the same connection string as the server. This previously hardcoded
+    // mongodb://localhost:27017/crm-lite, which both ignored .env and pointed at
+    // a different database name than the app reads from.
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('Connected to MongoDB:', new URL(process.env.MONGO_URI).pathname);
 
     // Clear existing data
     await Customer.deleteMany({});
