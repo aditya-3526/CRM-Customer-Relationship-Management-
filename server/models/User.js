@@ -32,14 +32,21 @@ const userSchema = new mongoose.Schema({
     },
 });
 
-// Encrypt password using bcrypt
+// Encrypt password using bcrypt.
+//
+// The `return` on the early exit is load-bearing. Without it, execution fell
+// through after calling next() and re-hashed the ALREADY-HASHED password on any
+// save where the password wasn't modified — so updating a user's name or role
+// would silently invalidate their login. Creation happened to work, which is
+// why it went unnoticed.
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
-        next();
+        return next();
     }
 
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    next();
 });
 
 // Match user entered password to hashed password in database

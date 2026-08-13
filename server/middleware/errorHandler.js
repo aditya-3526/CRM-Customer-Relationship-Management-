@@ -3,8 +3,12 @@ const errorHandler = (err, req, res, next) => {
 
   error.message = err.message;
 
-  // Log to console for dev
-  console.log(err.stack.red);
+  // Log the real stack. (This previously read `err.stack.red`, which relied on
+  // the `colors` package monkey-patching String.prototype — `colors` is not a
+  // dependency, so it logged `undefined` and swallowed every stack trace. It
+  // also threw outright whenever a non-Error value was thrown, since `undefined.red`
+  // is a TypeError.)
+  console.error(err.stack || err);
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
